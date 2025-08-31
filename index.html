@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resultados — Corrientes 2025</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg: #f8fafc; --card:#ffffff; --ink:#0f172a;}
+    html,body{height:100%}
+    body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(to bottom, #fff, var(--bg));color:var(--ink)}
+    .btn{ @apply inline-flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium hover:bg-slate-50 active:scale-[.99]; }
+    .btn-primary{ @apply bg-slate-900 text-white border-slate-900 hover:bg-slate-800; }
+    .tab{ @apply px-3 py-1.5 rounded-lg border bg-white text-sm hover:bg-slate-50; }
+    .tab.active{ @apply bg-slate-900 text-white border-slate-900; }
+  </style>
+</head>
+<body>
+  <main class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+    <!-- Alerts -->
+    <div id="alert" class="hidden mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"></div>
+
+    <!-- Top Cards -->
+    <div class="mb-6 grid gap-4 md:grid-cols-3">
+      <section class="md:col-span-2 rounded-2xl border bg-white shadow-sm">
+        <div class="p-4 sm:p-6">
+          <div class="text-slate-500 text-sm flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/><path fill-rule="evenodd" d="M12 2.25c-3.728 0-6.75 3.022-6.75 6.75 0 5.152 6.108 11.28 6.368 11.54a.75.75 0 0 0 1.064 0c.26-.26 6.368-6.388 6.368-11.54 0-3.728-3.022-6.75-6.75-6.75Zm0 9.75a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd"/></svg>
+            <span>Provincia</span>
+          </div>
+          <h1 id="title" class="text-2xl sm:text-3xl font-semibold mt-1">Resultados</h1>
+          <div class="flex flex-wrap items-center gap-2 pt-2 text-sm">
+            <span id="badge-estado" class="rounded-full border px-2 py-0.5">Resultado: -</span>
+            <span id="badge-cierre" class="rounded-full px-2 py-0.5 text-white">Abierto</span>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2 mt-4">
+            <div class="space-y-2 text-sm text-slate-600">
+              <div class="flex gap-2 items-center"><span class="font-medium">Fuente:</span><span id="fecha-fuente">-</span></div>
+              <div class="flex gap-2 items-center"><span class="font-medium">Actualización:</span><span id="fecha-cache">-</span></div>
+              <div class="flex gap-2 items-center"><span class="font-medium">Actualizado (cliente):</span><span id="fecha-cliente">-</span></div>
+            </div>
+            <div class="space-y-2">
+              <div class="text-sm text-slate-600">Mesas escrutadas</div>
+              <div class="flex justify-between text-sm"><span id="mesas-detalle">-</span><span class="text-slate-500">por escrutar: <span id="por-escrutar">-</span></span></div>
+              <div class="w-full h-2 bg-slate-100 rounded-full"><div id="mesas-bar" class="h-2 bg-slate-900 rounded-full" style="width:0%"></div></div>
+            </div>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-3 mt-4">
+            <div class="rounded-xl border p-3 bg-white"><div class="text-xs text-slate-500">Electores</div><div id="electores" class="text-lg font-semibold">-</div></div>
+            <div class="rounded-xl border p-3 bg-white"><div class="text-xs text-slate-500">Votantes</div><div id="votantes" class="text-lg font-semibold">-</div></div>
+            <div class="rounded-xl border p-3 bg-white"><div class="text-xs text-slate-500">Votos procesados</div><div id="votos-proc" class="text-lg font-semibold">-</div></div>
+          </div>
+
+          <div class="flex flex-wrap gap-2 pt-3">
+            <button id="btn-download" class="btn" disabled>Descargar JSON</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-2xl border bg-white shadow-sm p-4 sm:p-6">
+        <h2 class="text-lg font-semibold mb-3">Visualización</h2>
+        <div class="mb-3 relative">
+          <input id="search" type="text" placeholder="Buscar alianza o lista…" class="w-full rounded-xl border px-9 py-2 text-sm" />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6"/></svg>
+        </div>
+        <div class="flex items-center gap-2 mb-3 text-sm">
+          <span class="text-xs text-slate-500">Ordenar por</span>
+          <div class="flex rounded-xl border p-1">
+            <button id="sort-pct" class="px-3 py-1 rounded-lg bg-slate-900 text-white">%</button>
+            <button id="sort-votos" class="px-3 py-1 rounded-lg text-slate-600">Votos</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button id="view-bar" class="btn btn-primary">Barras</button>
+          <button id="view-pie" class="btn">Torta</button>
+          <button id="view-table" class="btn">Tabla</button>
+        </div>
+        <div class="text-xs text-slate-600 rounded-lg border bg-slate-50 p-3">
+          Seleccioná un cargo abajo para ver el detalle por alianza. Los colores respetan el <em>alianzaColor</em> provisto.
+        </div>
+      </section>
+    </div>
+
+    <!-- Cargo tabs -->
+    <div id="cargo-tabs" class="flex flex-wrap gap-2 mb-4"></div>
+
+    <!-- Content card -->
+    <section class="rounded-2xl border bg-white shadow-sm">
+      <div class="p-4 sm:p-6">
+        <div class="flex items-center gap-2 text-xl font-semibold mb-2">
+          <span id="cargo-title">—</span>
+          <span id="cargo-total" class="text-sm font-normal text-slate-500"></span>
+        </div>
+        <div id="chart-wrap" class="h-[360px]">
+          <canvas id="chart" class="w-full"></canvas>
+        </div>
+        <div id="table-wrap" class="hidden overflow-x-auto mt-4">
+          <table class="w-full min-w-[600px] text-sm">
+            <thead>
+              <tr class="text-left border-b">
+                <th class="py-2 pr-2">Alianza</th>
+                <th class="py-2 pr-2">Lista</th>
+                <th class="py-2 pr-2">Votos</th>
+                <th class="py-2 pr-2">%</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-8 pb-8 text-center text-xs text-slate-500">
+      GitHub Pages — Visualizador <code>ResultadoGeneralDTO</code>
+    </footer>
+  </main>
+
+<script>
+const API_URL = 'https://elecciones2025-api.corrientes.gob.ar/api/escrutinio/resultados/generales';
+let state = {
+  payload: null,
+  activeCargo: null,
+  query: '',
+  sortBy: 'porcentaje',
+  view: 'bar', // 'bar' | 'pie' | 'table'
+  cargos: [],
+  filtered: [],
+  chart: null,
+};
+
+const fmtNum = (n) => new Intl.NumberFormat('es-AR').format(n ?? 0);
+const fmtPct = (n, d=2) => `${new Intl.NumberFormat('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d}).format(n ?? 0)}%`;
+const fmtDT  = (s) => s ? new Intl.DateTimeFormat('es-AR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}).format(new Date(s)) : '-';
+const withHash = (hex) => !hex ? '#999' : (String(hex).startsWith('#') ? hex : `#${hex}`);
+
+async function load() {
+  try {
+    setAlert();
+    const res = await fetch(API_URL, {cache:'no-store'});
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    state.payload = json;
+    document.getElementById('fecha-cliente').textContent = fmtDT(new Date());
+    renderAll();
+  } catch (e) {
+    setAlert('Error al cargar: '+e.message);
+  }
+}
+
+function setAlert(text) {
+  const el = document.getElementById('alert');
+  if (!text) { el.classList.add('hidden'); el.textContent = ''; }
+  else { el.classList.remove('hidden'); el.textContent = text; }
+}
+
+function computeCargos(rows) {
+  const seen = new Set();
+  const list = [];
+  for (const r of rows) {
+    const key = r.cargoId+'|'+r.cargoDescripcion;
+    if (!seen.has(key)) { seen.add(key); list.push({id:r.cargoId, name:r.cargoDescripcion}); }
+  }
+  const order = { 'Gobernador':1, 'Senadores':2, 'Diputados':3 };
+  list.sort((a,b)=>(order[a.name]||99)-(order[b.name]||99));
+  return list;
+}
+
+function computeFiltered(rows) {
+  const inCargo = rows.filter(r => r.cargoId === state.activeCargo);
+  const q = state.query.trim().toLowerCase();
+  const arr = q ? inCargo.filter(r => r.titulo.toLowerCase().includes(q) || String(r.lista||'').toLowerCase().includes(q)) : inCargo;
+  arr.sort((a,b)=>{
+    const av = state.sortBy === 'votos' ? a.votos : a.porcentaje;
+    const bv = state.sortBy === 'votos' ? b.votos : b.porcentaje;
+    return bv - av;
+  });
+  return arr;
+}
+
+function renderHeader() {
+  const p = state.payload;
+  const header = p?.data?.header || {};
+  document.getElementById('title').textContent = header.titulo || 'Resultados';
+  document.getElementById('badge-estado').textContent = 'Resultado: ' + (header.resultado || '-');
+  const cierre = document.getElementById('badge-cierre');
+  cierre.textContent = header.estaCerrado ? 'Cerrado' : 'Abierto';
+  cierre.className = 'rounded-full px-2 py-0.5 text-white ' + (header.estaCerrado ? 'bg-green-600' : 'bg-amber-500');
+
+  document.getElementById('fecha-fuente').textContent = fmtDT(p.sourceDateTime);
+  document.getElementById('fecha-cache').textContent = fmtDT(p.cachedDateTime);
+
+  const mesas = header.mesas||0, esc = header.escrutadas||0;
+  const pct = mesas>0 ? (100*esc/mesas) : 0;
+  document.getElementById('mesas-detalle').textContent = `${fmtNum(esc)}/${fmtNum(mesas)} (${fmtPct(pct,2)})`;
+  document.getElementById('por-escrutar').textContent = fmtNum(header.porEscrutar||0);
+  document.getElementById('mesas-bar').style.width = pct.toFixed(2)+'%';
+
+  const elect = header.electores||0, vot = header.votantes||0;
+  const particip = elect ? (100*vot/elect) : 0;
+  document.getElementById('electores').textContent = fmtNum(elect);
+  document.getElementById('votantes').textContent = `${fmtNum(vot)} (${fmtPct(particip,1)})`;
+  document.getElementById('votos-proc').textContent = fmtNum(header.votosProcesados||0);
+
+  const btn = document.getElementById('btn-download');
+  btn.disabled = !p; btn.onclick = ()=>{
+    const blob = new Blob([JSON.stringify(p,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'resultado.json'; a.click(); URL.revokeObjectURL(url);
+  };
+}
+
+function renderTabs() {
+  const rows = state.payload?.data?.alianzaVotos || [];
+  state.cargos = computeCargos(rows);
+  if (state.activeCargo == null && state.cargos.length) state.activeCargo = state.cargos[0].id;
+
+  const wrap = document.getElementById('cargo-tabs');
+  wrap.innerHTML = '';
+  for (const c of state.cargos) {
+    const b = document.createElement('button');
+    b.textContent = c.name;
+    b.className = 'tab'+(state.activeCargo===c.id?' active':'');
+    b.onclick = ()=>{ state.activeCargo = c.id; renderContent(); };
+    wrap.appendChild(b);
+  }
+}
+
+function ensureChart(type, labels, data, colors) {
+  const ctx = document.getElementById('chart');
+  if (state.chart) { state.chart.destroy(); state.chart=null; }
+  const common = {
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: type==='pie' },
+        tooltip: { callbacks: { label: (c)=> type==='pie' ? `${c.label}: ${c.parsed.toFixed(2)}%` : `${labels[c.dataIndex]}: ${c.raw.toFixed(2)}%` } }
+      },
+      scales: type==='bar' ? { y: { ticks: { callback: v=> v+"%" }, beginAtZero:true, suggestedMax:100 } } : {}
+    },
+    data: {
+      labels,
+      datasets: [{
+        label: '%',
+        data,
+        backgroundColor: colors,
+        borderRadius: type==='bar' ? 6 : 0,
+      }]
+    }
+  };
+  state.chart = new Chart(ctx, type==='bar' ? { type:'bar', ...common } : { type:'pie', ...common });
+}
+
+function renderContent() {
+  const rows = state.payload?.data?.alianzaVotos || [];
+  state.filtered = computeFiltered(rows);
+
+  const cargo = state.cargos.find(c=>c.id===state.activeCargo);
+  const totalVotos = state.filtered.reduce((s,r)=>s+(r.votos||0),0);
+  document.getElementById('cargo-title').textContent = cargo? cargo.name : '—';
+  document.getElementById('cargo-total').textContent = `Total votos: ${fmtNum(totalVotos)}`;
+
+  // Table
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML='';
+  for (const r of state.filtered) {
+    const tr = document.createElement('tr'); tr.className='border-b last:border-b-0';
+    tr.innerHTML = `
+      <td class="py-2 pr-2"><div class="flex items-center gap-2"><span class="inline-block h-3 w-3 rounded" style="background:${withHash(r.alianzaColor)}"></span><span class="font-medium">${r.titulo}</span></div></td>
+      <td class="py-2 pr-2">${r.lista || '-'}</td>
+      <td class="py-2 pr-2">${fmtNum(r.votos)}</td>
+      <td class="py-2 pr-2">${fmtPct(r.porcentaje)}</td>`;
+    tbody.appendChild(tr);
+  }
+
+  // Chart
+  const labels = state.filtered.map(r=>r.titulo);
+  const data = state.filtered.map(r=>r.porcentaje);
+  const colors = state.filtered.map(r=>withHash(r.alianzaColor));
+  if (state.view==='table') {
+    document.getElementById('chart-wrap').classList.add('hidden');
+    document.getElementById('table-wrap').classList.remove('hidden');
+    if (state.chart) { state.chart.destroy(); state.chart=null; }
+  } else {
+    document.getElementById('table-wrap').classList.add('hidden');
+    document.getElementById('chart-wrap').classList.remove('hidden');
+    ensureChart(state.view, labels, data, colors);
+  }
+}
+
+function renderAll(){
+  renderHeader();
+  renderTabs();
+  renderContent();
+}
+
+// UI bindings
+function initUI(){
+  document.getElementById('search').addEventListener('input', (e)=>{ state.query = e.target.value; renderContent(); });
+  document.getElementById('sort-pct').onclick = ()=>{ state.sortBy='porcentaje'; document.getElementById('sort-pct').className='px-3 py-1 rounded-lg bg-slate-900 text-white'; document.getElementById('sort-votos').className='px-3 py-1 rounded-lg text-slate-600'; renderContent(); };
+  document.getElementById('sort-votos').onclick = ()=>{ state.sortBy='votos'; document.getElementById('sort-votos').className='px-3 py-1 rounded-lg bg-slate-900 text-white'; document.getElementById('sort-pct').className='px-3 py-1 rounded-lg text-slate-600'; renderContent(); };
+  document.getElementById('view-bar').onclick = ()=>{ state.view='bar'; setViewBtns(); renderContent(); };
+  document.getElementById('view-pie').onclick = ()=>{ state.view='pie'; setViewBtns(); renderContent(); };
+  document.getElementById('view-table').onclick = ()=>{ state.view='table'; setViewBtns(); renderContent(); };
+}
+function setViewBtns(){
+  const map = { 'view-bar':'bar', 'view-pie':'pie', 'view-table':'table' };
+  for (const id in map){
+    const el = document.getElementById(id);
+    if (state.view===map[id]) el.className='btn btn-primary'; else el.className='btn';
+  }
+}
+
+// Boot
+initUI();
+load();
+setInterval(load, 60_000);
+</script>
+</body>
+</html>
